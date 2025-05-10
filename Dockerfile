@@ -12,7 +12,6 @@ RUN apt-get update && apt-get install -y \
     zip \
     && docker-php-ext-install pdo pdo_pgsql pdo_mysql mbstring
 
-
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
@@ -25,13 +24,17 @@ COPY . .
 # Jalankan Composer install setelah semua dependensi siap
 RUN composer install --no-dev --optimize-autoloader
 
-RUN php artisan config:cache && \
+# Salin .env.example ke .env jika belum ada (mencegah error)
+RUN if [ ! -f .env ]; then cp .env.example .env; fi
+
+# Generate app key & cache konfigurasi Laravel
+RUN php artisan key:generate && \
+    php artisan config:cache && \
     php artisan route:cache && \
-    php artisan view:cache && \
+    php artisan view:cache
 
-
-# Expose port
+# Expose port yang akan digunakan
 EXPOSE 8080
 
-# Jalankan php-fpm
+# Jalankan Laravel di port 8080
 CMD php artisan serve --host=0.0.0.0 --port=8080
